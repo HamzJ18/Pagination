@@ -1,0 +1,70 @@
+﻿@page "/fetchdata"
+
+@using MudBlazorPage.Shared.Entities.Models
+@using MudBlazorPage.Shared.Entities.RequestFeatures;
+@using MudBlazorPage.Client.HttpService.Interface;
+
+<MudTable ServerData="@(new Func<TableState, Task<TableData<UserTable>>>(GetServerData))"
+		  Hover="true" Breakpoint="Breakpoint.Sm"
+		  @ref="_table" RowsPerPage="4">
+	<ToolBarContent>
+		<MudText Typo="Typo.h6">Products</MudText>
+		<MudSpacer />
+		<MudTextField OnDebounceIntervalElapsed="OnSearch" Placeholder="Search"
+					  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+					  IconSize="Size.Medium" Class="mt-0" T="string" DebounceInterval="500"></MudTextField>
+	</ToolBarContent>
+	<HeaderContent>
+		<MudTh><MudTableSortLabel SortLabel="UserId" T="UserTable">UserId</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel SortLabel="PersonId" T="UserTable">PersonId</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel SortLabel="FirstName" T="UserTable">FirstName</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel SortLabel="LastName" T="UserTable">LastName</MudTableSortLabel></MudTh>
+	</HeaderContent>
+	<RowTemplate>
+		<MudTd DataLabel="UserId">@context.UserId</MudTd>
+		<MudTd DataLabel="PersonId">@context.PersonId</MudTd>
+		<MudTd DataLabel="FirstName">@context.FirstName</MudTd>
+		<MudTd DataLabel="LastName">@context.LastName</MudTd>
+	</RowTemplate>
+	<PagerContent>
+		<MudTablePager PageSizeOptions="@_pageSizeOption" RowsPerPageString="Products per page" />
+	</PagerContent>
+</MudTable>
+
+
+@code{
+	private MudTable<UserTable> _table;
+	private Parameters _parameters = new Parameters();
+	private readonly int[] _pageSizeOption = { 4, 6, 10 };
+
+	[Inject]
+	public IHttpClientService Service { get; set; }
+
+	private async Task<TableData<UserTable>> GetServerData(TableState state)
+	{
+		_parameters.PageSize = state.PageSize;
+		_parameters.PageNumber = state.Page + 1;
+
+		_parameters.OrderBy = state.SortDirection == SortDirection.Descending ?
+			state.SortLabel + " desc" :
+			state.SortLabel;
+
+		var response = await Service.GetUserTables(_parameters);
+
+		return new TableData<UserTable>
+			{
+				Items = response.Items,
+				TotalItems = response.MetaData.TotalCount
+			};
+	}
+
+	private void OnSearch(string searchTerm)
+	{
+		_parameters.SearchTerm = searchTerm;
+		_table.ReloadServerData();
+	}
+	
+
+	
+	
+}
